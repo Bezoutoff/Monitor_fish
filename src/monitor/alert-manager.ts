@@ -14,6 +14,10 @@ export class AlertManager {
     private logDir: string;
     private currentLogFile: string | null = null;
 
+    // Telegram bot config
+    private telegramToken = '7622763223:AAEccNTlepJ1YmfMCT5IC1DNEaNAL8bhu-8';
+    private telegramChatId = '218227095';
+
     constructor(logDir: string = 'order-monitor-logs') {
         this.logDir = logDir;
         this.ensureLogDirectory();
@@ -28,6 +32,9 @@ export class AlertManager {
 
         // JSON logging
         await this.logToFile(alert);
+
+        // Telegram notification
+        await this.sendTelegram(alert);
     }
 
     /**
@@ -61,6 +68,7 @@ export class AlertManager {
         console.log(`${colors.bright}Order:${colors.reset}    ${sideColor}${alert.side}${colors.reset} ${alert.size.toLocaleString()} shares @ $${alert.price.toFixed(2)}`);
         console.log(`${colors.bright}Age:${colors.reset}      ${colors.yellow}${ageMinutes} minutes${colors.reset} (${alert.ageSeconds}s)`);
         console.log(`${colors.bright}Token ID:${colors.reset} ${alert.tokenId.substring(0, 20)}...`);
+        console.log(`${colors.bright}URL:${colors.reset}      ${colors.cyan}https://polymarket.com/event/${alert.match}${colors.reset}`);
         console.log(colors.cyan + '─'.repeat(60) + colors.reset);
         console.log('');
 
@@ -123,6 +131,41 @@ export class AlertManager {
         if (!fs.existsSync(this.logDir)) {
             fs.mkdirSync(this.logDir, { recursive: true });
             console.log(`📁 Created log directory: ${this.logDir}`);
+        }
+    }
+
+    /**
+     * Send alert to Telegram
+     */
+    private async sendTelegram(alert: OrderAlert): Promise<void> {
+        try {
+            const ageMinutes = (alert.ageSeconds / 60).toFixed(1);
+            const text = `🚨 *ALERT*
+
+*Match:* ${alert.match}
+*Market:* ${alert.market}
+*Order:* ${alert.side} ${alert.size.toLocaleString()} @ $${alert.price.toFixed(2)}
+*Age:* ${ageMinutes} min
+
+[Open on Polymarket](https://polymarket.com/event/${alert.match})`;
+
+            const url = `https://api.telegram.org/bot${this.telegramToken}/sendMessage`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: this.telegramChatId,
+                    text,
+                    parse_mode: 'Markdown',
+                    disable_web_page_preview: true
+                })
+            });
+
+            if (!response.ok) {
+                console.error('❌ Telegram error:', await response.text());
+            }
+        } catch (error) {
+            console.error('❌ Failed to send Telegram:', error);
         }
     }
 
