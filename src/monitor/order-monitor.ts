@@ -51,17 +51,18 @@ export class OrderMonitor {
         this.alertManager = new AlertManager();
 
         console.log('');
-        console.log('🎯 ═══════════════════════════════════════════════════════════');
-        console.log('🎯  POLYMARKET ORDER MONITOR - Large Order Detection');
-        console.log('🎯 ═══════════════════════════════════════════════════════════');
+        console.log('🐋 ═══════════════════════════════════════════════════════════');
+        console.log('🐋  WHALE ALERT MONITOR - Мониторинг крупных ордеров');
+        console.log('🐋 ═══════════════════════════════════════════════════════════');
         console.log('');
-        console.log('⚙️  Configuration:');
-        console.log(`   Min Size: ${this.config.minSize.toLocaleString()} shares`);
-        console.log(`   Price Range: $${this.config.minPrice.toFixed(2)} - $${this.config.maxPrice.toFixed(2)}`);
-        console.log(`   Alert Age: ${this.config.alertAgeSeconds} seconds (${(this.config.alertAgeSeconds / 60).toFixed(1)} minutes)`);
-        console.log(`   Delta Tolerance: ${(this.config.deltaTolerance * 100).toFixed(0)}% (allowed size decrease)`);
-        console.log(`   Min Impact: ${(this.config.minImpactPercent * 100).toFixed(0)}% (delta must increase total by this much)`);
-        console.log(`   Match Check: Every ${(this.config.matchCheckInterval / 1000 / 60).toFixed(1)} minutes`);
+        console.log('⚙️  Конфигурация:');
+        console.log(`   📦 Мин. размер: ${this.config.minSize.toLocaleString()} shares`);
+        console.log(`   💵 Диапазон цен: ${(this.config.minPrice * 100).toFixed(0)}¢ - ${(this.config.maxPrice * 100).toFixed(0)}¢`);
+        console.log(`   ⏱️  Время алерта: ${this.config.alertAgeSeconds} сек (${(this.config.alertAgeSeconds / 60).toFixed(1)} мин)`);
+        console.log(`   📉 Толерантность: ${(this.config.deltaTolerance * 100).toFixed(0)}% (допустимое уменьшение)`);
+        console.log(`   📈 Мин. импакт: ${(this.config.minImpactPercent * 100).toFixed(0)}% (рост от предыдущего)`);
+        console.log(`   🔄 Проверка матчей: каждые ${(this.config.matchCheckInterval / 1000 / 60).toFixed(1)} мин`);
+        console.log(`   🎯 Только BUY ордера`);
         console.log('');
     }
 
@@ -211,21 +212,15 @@ export class OrderMonitor {
 
                 if (!tokenId) continue;
 
-                // Process bids (array of {price, size})
+                // Process only BID orders (BUY side)
+                // NOTE: We ignore ASK/SELL orders because in binary markets,
+                // BUY on outcome A = SELL on outcome B (same trade, different representation)
+                // This prevents duplicate alerts for the same underlying trade
                 for (const bid of (book.bids || [])) {
                     if (bid.size > 0) {
                         this.orderTracker?.processOrderLevel(tokenId, bid.price, bid.size, 'BUY');
                     } else {
                         this.orderTracker?.removeOrder(tokenId, bid.price, 'BUY');
-                    }
-                }
-
-                // Process asks (array of {price, size})
-                for (const ask of (book.asks || [])) {
-                    if (ask.size > 0) {
-                        this.orderTracker?.processOrderLevel(tokenId, ask.price, ask.size, 'SELL');
-                    } else {
-                        this.orderTracker?.removeOrder(tokenId, ask.price, 'SELL');
                     }
                 }
             }

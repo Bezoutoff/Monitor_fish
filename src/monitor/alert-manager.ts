@@ -16,17 +16,40 @@ export class AlertManager {
 
     // Telegram bot config
     private telegramToken = '7622763223:AAEccNTlepJ1YmfMCT5IC1DNEaNAL8bhu-8';
-    private telegramChatId = '218227095';
+    private telegramChatId = '-5052080545';  // Group: Monitor Fish
+
+    // Deduplication - store sent alerts to avoid duplicates
+    private sentAlertsFile: string;
+    private sentAlerts: Set<string> = new Set();
+    private lastCleanup: Date = new Date();
+
+    // Write queue to prevent race conditions
+    private writeQueue: OrderAlert[] = [];
+    private isWriting: boolean = false;
 
     constructor(logDir: string = 'order-monitor-logs') {
         this.logDir = logDir;
+        this.sentAlertsFile = path.join(logDir, 'sent-alerts.json');
         this.ensureLogDirectory();
+        this.loadSentAlerts();
     }
 
     /**
      * Handle an alert
      */
     async handleAlert(alert: OrderAlert): Promise<void> {
+        const key = this.getAlertKey(alert);
+
+        // Check for duplicate
+        if (this.sentAlerts.has(key)) {
+            console.log(`   ⏭️ Duplicate alert skipped: ${alert.market} @ $${alert.price.toFixed(2)}`);
+            return;
+        }
+
+        // Save to deduplication set
+        this.sentAlerts.add(key);
+        this.saveSentAlerts();
+
         // Console output with beep
         this.logToConsole(alert);
 
@@ -77,33 +100,62 @@ export class AlertManager {
     }
 
     /**
-     * Log alert to JSON file
+     * Add alert to write queue (prevents race conditions)
      */
     private async logToFile(alert: OrderAlert): Promise<void> {
+        this.writeQueue.push(alert);
+        await this.processWriteQueue();
+    }
+
+    /**
+     * Process write queue sequentially
+     */
+    private async processWriteQueue(): Promise<void> {
+        // If already writing, queue will be processed by current writer
+        if (this.isWriting) {
+            return;
+        }
+
+        this.isWriting = true;
+
         try {
-            const logFile = this.getCurrentLogFile();
+            while (this.writeQueue.length > 0) {
+                // Take all pending alerts
+                const alertsToWrite = [...this.writeQueue];
+                this.writeQueue = [];
 
-            // Read existing logs
-            let logs: OrderAlert[] = [];
-            if (fs.existsSync(logFile)) {
-                const content = await fs.promises.readFile(logFile, 'utf-8');
-                if (content.trim()) {
-                    logs = JSON.parse(content);
+                const logFile = this.getCurrentLogFile();
+
+                // Read existing logs
+                let logs: OrderAlert[] = [];
+                if (fs.existsSync(logFile)) {
+                    const content = await fs.promises.readFile(logFile, 'utf-8');
+                    if (content.trim()) {
+                        try {
+                            logs = JSON.parse(content);
+                        } catch (e) {
+                            console.error('❌ Corrupted JSON file, starting fresh');
+                            logs = [];
+                        }
+                    }
                 }
+
+                // Append all new alerts
+                logs.push(...alertsToWrite);
+
+                // Write back to file atomically
+                const tempFile = logFile + '.tmp';
+                await fs.promises.writeFile(
+                    tempFile,
+                    JSON.stringify(logs, null, 2),
+                    'utf-8'
+                );
+                await fs.promises.rename(tempFile, logFile);
             }
-
-            // Append new alert
-            logs.push(alert);
-
-            // Write back to file
-            await fs.promises.writeFile(
-                logFile,
-                JSON.stringify(logs, null, 2),
-                'utf-8'
-            );
-
         } catch (error) {
             console.error('❌ Error logging to file:', error);
+        } finally {
+            this.isWriting = false;
         }
     }
 
@@ -135,19 +187,108 @@ export class AlertManager {
     }
 
     /**
+     * Load sent alerts from file (for deduplication)
+     */
+    private loadSentAlerts(): void {
+        try {
+            if (fs.existsSync(this.sentAlertsFile)) {
+                const data = JSON.parse(fs.readFileSync(this.sentAlertsFile, 'utf-8'));
+                this.lastCleanup = new Date(data.lastCleanup);
+                this.sentAlerts = new Set(data.alerts || []);
+
+                // Check if cleanup needed (48 hours = 2 days)
+                const hoursSinceCleanup = (Date.now() - this.lastCleanup.getTime()) / (1000 * 60 * 60);
+                if (hoursSinceCleanup >= 48) {
+                    console.log('🧹 Clearing old sent alerts (2 days passed)');
+                    this.sentAlerts.clear();
+                    this.lastCleanup = new Date();
+                    this.saveSentAlerts();
+                }
+
+                console.log(`📋 Loaded ${this.sentAlerts.size} sent alerts for deduplication`);
+            }
+        } catch (error) {
+            console.error('❌ Error loading sent alerts:', error);
+            this.sentAlerts = new Set();
+            this.lastCleanup = new Date();
+        }
+    }
+
+    /**
+     * Save sent alerts to file
+     */
+    private saveSentAlerts(): void {
+        try {
+            const data = {
+                lastCleanup: this.lastCleanup.toISOString(),
+                alerts: Array.from(this.sentAlerts)
+            };
+            fs.writeFileSync(this.sentAlertsFile, JSON.stringify(data, null, 2));
+        } catch (error) {
+            console.error('❌ Error saving sent alerts:', error);
+        }
+    }
+
+    /**
+     * Generate unique key for deduplication (tokenId + price)
+     */
+    private getAlertKey(alert: OrderAlert): string {
+        return `${alert.tokenId}_${alert.price.toFixed(2)}`;
+    }
+
+    /**
+     * Get sport emoji based on match slug
+     */
+    private getSportEmoji(matchSlug: string): string {
+        const prefix = matchSlug.split('-')[0].toLowerCase();
+        const sportEmojis: Record<string, string> = {
+            'nba': '🏀',
+            'cbb': '🏀',
+            'nhl': '🏒',
+            'nfl': '🏈',
+            'cfb': '🏈',
+            'mlb': '⚾',
+            'dota2': '🎮',
+            'val': '🎮',
+            'cs2': '🎮',
+            'lol': '🎮',
+            'tur': '⚽',
+            'bl2': '⚽',
+            'epl': '⚽',
+            'laliga': '⚽',
+            'ucl': '⚽',
+        };
+        return sportEmojis[prefix] || '🎯';
+    }
+
+    /**
      * Send alert to Telegram
      */
     private async sendTelegram(alert: OrderAlert): Promise<void> {
         try {
-            const ageMinutes = (alert.ageSeconds / 60).toFixed(1);
-            const text = `🚨 *ALERT*
+            // Calculate dollar value
+            const dollarValue = alert.size * alert.price;
+            const dollarStr = dollarValue >= 1000
+                ? `$${(dollarValue / 1000).toFixed(1)}k`
+                : `$${dollarValue.toFixed(0)}`;
 
-*Match:* ${alert.match}
-*Market:* ${alert.market}
-*Order:* ${alert.side} ${alert.size.toLocaleString()} @ $${alert.price.toFixed(2)}
-*Age:* ${ageMinutes} min
+            // Format size
+            const sizeStr = alert.size >= 1000
+                ? `${(alert.size / 1000).toFixed(1)}k`
+                : alert.size.toFixed(0);
 
-[Open on Polymarket](https://polymarket.com/event/${alert.match})`;
+            // Get sport emoji
+            const sportEmoji = this.getSportEmoji(alert.match);
+
+            const text = `🐋 *WHALE ALERT* ${sportEmoji}
+
+📊 *${alert.market}*
+💰 \`${sizeStr} shares @ ${(alert.price * 100).toFixed(0)}¢\`
+💵 Value: *${dollarStr}*
+
+${sportEmoji} ${alert.match}
+
+[📈 Open Market](https://polymarket.com/event/${alert.match})`;
 
             const url = `https://api.telegram.org/bot${this.telegramToken}/sendMessage`;
             const response = await fetch(url, {
