@@ -19,6 +19,7 @@ interface GammaMarketResponse {
     outcomes: string;        // JSON string: ["Team A", "Team B"]
     active: boolean;
     closed: boolean;
+    acceptingOrders?: boolean;  // true = LIVE, false = finished
 }
 
 export class LiveMatchFinder {
@@ -129,6 +130,11 @@ export class LiveMatchFinder {
                     if (gameDate < yesterday) {
                         continue;
                     }
+                }
+
+                // Skip markets not accepting orders (match finished)
+                if (market.acceptingOrders === false) {
+                    continue;
                 }
 
                 // Skip markets without tokens
