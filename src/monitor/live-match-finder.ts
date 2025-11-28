@@ -37,6 +37,7 @@ export class LiveMatchFinder {
         'csgo-',  // Counter-Strike
         'cs2-',   // Counter-Strike 2
         'dota-',  // Dota 2
+        'dota2-', // Dota 2 (alternative prefix)
     ];
 
     // Date pattern to identify real matches (YYYY-MM-DD)
