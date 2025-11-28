@@ -122,12 +122,13 @@ export class LiveMatchFinder {
                     continue;
                 }
 
-                // Skip old matches (gameStartTime < yesterday)
+                // Only LIVE matches: started (gameStartTime <= now) AND not finished (acceptingOrders = true)
                 if (market.gameStartTime) {
-                    const gameDate = new Date(market.gameStartTime);
-                    const yesterday = new Date();
-                    yesterday.setDate(yesterday.getDate() - 1);
-                    if (gameDate < yesterday) {
+                    const gameStart = new Date(market.gameStartTime);
+                    const now = new Date();
+
+                    // Skip matches that haven't started yet
+                    if (gameStart > now) {
                         continue;
                     }
                 }
