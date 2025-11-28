@@ -136,10 +136,19 @@ export class OrderMonitor {
                 await this.wsParser.subscribe(tokenIds);
             }
 
-            // Show subscribed matches
-            console.log(`\n📋 Subscribed to ${matches.length} matches:`);
+            // Group matches by base slug (without spread/total/1h suffixes)
+            const baseMatchMap = new Map<string, number>();
             for (const match of matches) {
-                console.log(`   ${match.slug} (${match.markets.length} markets)`);
+                // Extract base slug: nba-mia-dal-2025-12-03 from nba-mia-dal-2025-12-03-spread-home-5pt5
+                const baseSlug = match.slug.replace(/-(spread|total|1h|2h|moneyline).*$/, '');
+                const currentCount = baseMatchMap.get(baseSlug) || 0;
+                baseMatchMap.set(baseSlug, currentCount + match.markets.length);
+            }
+
+            // Show subscribed matches (grouped)
+            console.log(`\n📋 Subscribed to ${baseMatchMap.size} matches:`);
+            for (const [baseSlug, marketCount] of baseMatchMap) {
+                console.log(`   ${baseSlug} (${marketCount} markets)`);
             }
 
             // Cleanup orders from completed matches
