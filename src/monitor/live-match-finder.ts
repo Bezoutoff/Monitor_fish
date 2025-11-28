@@ -30,6 +30,7 @@ export class LiveMatchFinder {
         'nba-',   // NBA basketball
         'nhl-',   // NHL hockey
         'nfl-',   // NFL football
+        'cbb-',   // College basketball (NCAA)
         'val-',   // Valorant esports
         'lol-',   // League of Legends
         'csgo-',  // Counter-Strike
