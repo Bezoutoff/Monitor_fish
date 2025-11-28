@@ -209,37 +209,50 @@ export class PolymarketWebSocketParser {
 
   /**
    * Fetch initial order books via REST API for instant loading
+   * Uses batch processing to respect 20 RPS rate limit
    */
   private async fetchInitialOrderBooks(tokenIds: string[]): Promise<void> {
     console.log('📥 Fetching initial order books via REST API...');
 
     const clobClient = new ClobClient('https://clob.polymarket.com', 137);
+    const batchSize = 20;  // Match 20 RPS rate limit
 
-    for (const tokenId of tokenIds) {
-      try {
-        const orderBookData = await clobClient.getOrderBook(tokenId);
+    for (let i = 0; i < tokenIds.length; i += batchSize) {
+      const batch = tokenIds.slice(i, i + batchSize);
 
-        if (orderBookData) {
-          const now = new Date();
-          const orderBook: OrderBook = {
-            bids: orderBookData.bids?.map((b: any) => ({
-              price: parseFloat(b.price),
-              size: parseFloat(b.size),
-              lastUpdate: now
-            })) || [],
-            asks: orderBookData.asks?.map((a: any) => ({
-              price: parseFloat(a.price),
-              size: parseFloat(a.size),
-              lastUpdate: now
-            })) || [],
-            marketId: tokenId,
-            timestamp: now
-          };
+      // Fetch batch in parallel
+      await Promise.all(batch.map(async (tokenId) => {
+        try {
+          const orderBookData = await clobClient.getOrderBook(tokenId);
 
-          this.orderBookState.set(tokenId, orderBook);
+          if (orderBookData) {
+            const now = new Date();
+            const orderBook: OrderBook = {
+              bids: orderBookData.bids?.map((b: any) => ({
+                price: parseFloat(b.price),
+                size: parseFloat(b.size),
+                lastUpdate: now
+              })) || [],
+              asks: orderBookData.asks?.map((a: any) => ({
+                price: parseFloat(a.price),
+                size: parseFloat(a.size),
+                lastUpdate: now
+              })) || [],
+              marketId: tokenId,
+              timestamp: now
+            };
+
+            this.orderBookState.set(tokenId, orderBook);
+          }
+        } catch (error) {
+          console.error(`❌ Failed to fetch orderbook for ${tokenId.slice(0, 8)}...`, error);
         }
-      } catch (error) {
-        console.error(`❌ Failed to fetch initial orderbook for ${tokenId.slice(0, 8)}...`, error);
+      }));
+
+      // Delay between batches to respect rate limit (except for last batch)
+      if (i + batchSize < tokenIds.length) {
+        console.log(`   Loaded ${Math.min(i + batchSize, tokenIds.length)}/${tokenIds.length} orderbooks...`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
 
