@@ -42,7 +42,9 @@ export class OrderMonitor {
             minPrice: parseFloat(process.env.MONITOR_MIN_PRICE || '0.05'),
             maxPrice: parseFloat(process.env.MONITOR_MAX_PRICE || '0.95'),
             alertAgeSeconds: parseInt(process.env.MONITOR_ALERT_AGE_SECONDS || '120'),
-            matchCheckInterval: parseInt(process.env.MONITOR_MATCH_CHECK_INTERVAL || '300000')
+            matchCheckInterval: parseInt(process.env.MONITOR_MATCH_CHECK_INTERVAL || '300000'),
+            deltaTolerance: parseFloat(process.env.MONITOR_DELTA_TOLERANCE || '0.10'),
+            minImpactPercent: parseFloat(process.env.MONITOR_MIN_IMPACT || '0.60')
         };
 
         this.matchFinder = new LiveMatchFinder();
@@ -50,13 +52,15 @@ export class OrderMonitor {
 
         console.log('');
         console.log('🎯 ═══════════════════════════════════════════════════════════');
-        console.log('🎯  POLYMARKET ORDER MONITOR - NBA/NHL Live Matches');
+        console.log('🎯  POLYMARKET ORDER MONITOR - Large Order Detection');
         console.log('🎯 ═══════════════════════════════════════════════════════════');
         console.log('');
         console.log('⚙️  Configuration:');
         console.log(`   Min Size: ${this.config.minSize.toLocaleString()} shares`);
         console.log(`   Price Range: $${this.config.minPrice.toFixed(2)} - $${this.config.maxPrice.toFixed(2)}`);
         console.log(`   Alert Age: ${this.config.alertAgeSeconds} seconds (${(this.config.alertAgeSeconds / 60).toFixed(1)} minutes)`);
+        console.log(`   Delta Tolerance: ${(this.config.deltaTolerance * 100).toFixed(0)}% (allowed size decrease)`);
+        console.log(`   Min Impact: ${(this.config.minImpactPercent * 100).toFixed(0)}% (delta must increase total by this much)`);
         console.log(`   Match Check: Every ${(this.config.matchCheckInterval / 1000 / 60).toFixed(1)} minutes`);
         console.log('');
     }

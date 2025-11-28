@@ -4,8 +4,10 @@
  * Tracks NEW large orders by detecting significant size increases (delta ≥ minSize)
  * on price levels. Alerts when the increased size remains for configured duration.
  *
- * Key insight: Aggregated orderbook shows total size at each price level.
- * We detect new large orders by monitoring SIZE CHANGES, not absolute values.
+ * Filters:
+ * - minSize: Minimum delta to trigger tracking (e.g., 10000 shares)
+ * - minImpactPercent: Delta must increase total size by this % (e.g., 60%)
+ * - deltaTolerance: Allowed decrease without reset (e.g., 10%)
  */
 
 import { TrackedOrder, MonitorConfig, OrderAlert } from './types';
@@ -14,10 +16,11 @@ interface PriceLevel {
     tokenId: string;
     price: number;
     side: 'BUY' | 'SELL';
-    previousSize: number;      // Last known aggregated size
-    trackedDelta: number;      // Delta being tracked (≥ minSize)
+    previousSize: number;         // Last known aggregated size
+    baselineSize: number;         // Size when tracking started (for tolerance calc)
+    trackedDelta: number;         // Delta being tracked (≥ minSize)
     deltaFirstSeen: Date | null;  // When delta first appeared
-    alerted: boolean;          // Whether alert was sent for this delta
+    alerted: boolean;             // Whether alert was sent for this delta
 }
 
 export class OrderTracker {
@@ -69,6 +72,7 @@ export class OrderTracker {
                 price,
                 side,
                 previousSize: newSize,
+                baselineSize: newSize,
                 trackedDelta: 0,
                 deltaFirstSeen: null,
                 alerted: false
@@ -77,33 +81,53 @@ export class OrderTracker {
             return;  // Don't trigger on initial load
         }
 
-        // Calculate size change
+        // Calculate size change from previous observation
         const delta = newSize - level.previousSize;
 
-        if (delta >= this.config.minSize) {
-            // Significant increase detected - new large order!
-            if (level.trackedDelta === 0) {
+        // Check if we're currently tracking a delta
+        if (level.trackedDelta > 0) {
+            // Calculate current delta from baseline
+            const currentDeltaFromBaseline = newSize - level.baselineSize;
+
+            // Calculate tolerance threshold (allow X% decrease from tracked delta)
+            const toleranceThreshold = level.trackedDelta * (1 - this.config.deltaTolerance);
+
+            if (currentDeltaFromBaseline >= toleranceThreshold) {
+                // OK - within tolerance, continue tracking
+                // Update tracked delta if it increased
+                if (currentDeltaFromBaseline > level.trackedDelta) {
+                    level.trackedDelta = currentDeltaFromBaseline;
+                }
+            } else {
+                // Too much decrease - reset tracking
+                if (!level.alerted) {
+                    console.log(`   📉 Order likely removed: ${matchInfo.slug} | ${side} @ $${price.toFixed(2)} (delta dropped below tolerance)`);
+                }
+                level.trackedDelta = 0;
+                level.deltaFirstSeen = null;
+                level.alerted = false;
+                level.baselineSize = newSize;
+            }
+        } else if (delta >= this.config.minSize) {
+            // New significant increase detected - check impact filter
+            const impact = level.previousSize > 0
+                ? delta / level.previousSize
+                : 1.0;  // If previous was 0, any delta is 100%+ impact
+
+            if (impact >= this.config.minImpactPercent) {
                 // Start tracking this new delta
+                level.baselineSize = level.previousSize;
                 level.trackedDelta = delta;
                 level.deltaFirstSeen = now;
                 level.alerted = false;
 
-                console.log(`   📈 NEW LARGE ORDER: ${matchInfo.slug} | ${matchInfo.outcome} | ${side} +${delta.toLocaleString()} @ $${price.toFixed(2)}`);
-            } else {
-                // Update existing tracked delta
-                level.trackedDelta += delta;
+                const impactPct = (impact * 100).toFixed(0);
+                console.log(`   📈 NEW LARGE ORDER: ${matchInfo.slug} | ${matchInfo.outcome} | ${side} +${delta.toLocaleString()} @ $${price.toFixed(2)} (${impactPct}% impact)`);
             }
-        } else if (delta < -this.config.minSize / 2) {
-            // Significant decrease - order likely removed
-            if (level.trackedDelta > 0 && !level.alerted) {
-                console.log(`   📉 Order removed before alert: ${matchInfo.slug} | ${side} @ $${price.toFixed(2)}`);
-            }
-            level.trackedDelta = 0;
-            level.deltaFirstSeen = null;
-            level.alerted = false;
+            // else: delta is large but impact too small - ignore
         }
 
-        // Update baseline
+        // Update previous size
         level.previousSize = newSize;
     }
 
@@ -166,6 +190,7 @@ export class OrderTracker {
                 }
             }
             level.previousSize = 0;
+            level.baselineSize = 0;
             level.trackedDelta = 0;
             level.deltaFirstSeen = null;
             level.alerted = false;

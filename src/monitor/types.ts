@@ -3,11 +3,13 @@
  */
 
 export interface MonitorConfig {
-    minSize: number;              // Minimum order size (shares)
+    minSize: number;              // Minimum order size (shares) - 10000
     minPrice: number;             // Minimum price (0.05)
     maxPrice: number;             // Maximum price (0.95)
     alertAgeSeconds: number;      // Alert after N seconds (120)
     matchCheckInterval: number;   // Check for new matches every N ms (300000 = 5 min)
+    deltaTolerance: number;       // Allowed size decrease without reset (0.10 = 10%)
+    minImpactPercent: number;     // Min impact on total size to track (0.60 = 60%)
 }
 
 export interface LiveMatch {
