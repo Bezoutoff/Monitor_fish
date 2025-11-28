@@ -1,0 +1,24 @@
+{
+  "name": "monitor-fish",
+  "version": "1.0.0",
+  "description": "Polymarket Order Monitor - tracks large orders and alerts",
+  "main": "dist/monitor/order-monitor.js",
+  "scripts": {
+    "build": "tsc",
+    "monitor": "npx ts-node src/monitor/order-monitor.ts",
+    "start": "node dist/monitor/order-monitor.js"
+  },
+  "keywords": ["polymarket", "monitor", "trading"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@polymarket/clob-client": "^4.22.8",
+    "@polymarket/real-time-data-client": "^1.4.0",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.2"
+  }
+}
