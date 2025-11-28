@@ -89,7 +89,15 @@ export class PolymarketWebSocketParser {
         resolve();  // Connection established!
       };
 
-      this.client = new RealTimeDataClient({ onMessage, onConnect });
+      const onStatusChange = (status: string): void => {
+        if (status === 'DISCONNECTED') {
+          console.log('⚠️  WebSocket disconnected, auto-reconnecting...');
+        } else if (status === 'CONNECTING') {
+          console.log('🔄 WebSocket reconnecting...');
+        }
+      };
+
+      this.client = new RealTimeDataClient({ onMessage, onConnect, onStatusChange });
       this.client.connect();
     });
   }
@@ -244,8 +252,11 @@ export class PolymarketWebSocketParser {
 
             this.orderBookState.set(tokenId, orderBook);
           }
-        } catch (error) {
-          console.error(`❌ Failed to fetch orderbook for ${tokenId.slice(0, 8)}...`, error);
+        } catch (error: any) {
+          // Ignore 404 - market exists but no orders yet
+          if (error?.response?.status !== 404) {
+            console.error(`❌ Failed to fetch orderbook for ${tokenId.slice(0, 8)}...`);
+          }
         }
       }));
 
@@ -452,10 +463,8 @@ export class PolymarketWebSocketParser {
           orderBook.bids = orderBook.bids.slice(0, 50);
         } else if (existingIndex >= 0) {
           orderBook.bids.splice(existingIndex, 1);
-        } else {
-          // Log when trying to remove non-existent level
-          console.warn(`⚠️  Tried to remove BID level at ${price} but not found (asset: ${assetId.slice(0, 8)}...)`);
         }
+        // Silently ignore remove for non-existent level (normal during reconnects)
       } else if (side === 'SELL') {
         // Update asks
         const existingIndex = orderBook.asks.findIndex(a => a.price === price);
@@ -471,10 +480,8 @@ export class PolymarketWebSocketParser {
           orderBook.asks = orderBook.asks.slice(0, 50);
         } else if (existingIndex >= 0) {
           orderBook.asks.splice(existingIndex, 1);
-        } else {
-          // Log when trying to remove non-existent level
-          console.warn(`⚠️  Tried to remove ASK level at ${price} but not found (asset: ${assetId.slice(0, 8)}...)`);
         }
+        // Silently ignore remove for non-existent level (normal during reconnects)
       }
 
       orderBook.timestamp = new Date();
