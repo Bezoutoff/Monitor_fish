@@ -27,17 +27,50 @@ export class LiveMatchFinder {
 
     // Sports/esports prefixes for actual matches
     private readonly matchPrefixes = [
+        // American sports
         'nba-',   // NBA basketball
         'nhl-',   // NHL hockey
         'nfl-',   // NFL football
         'cbb-',   // College basketball (NCAA)
         'cfb-',   // College football (NCAA)
-        'val-',   // Valorant esports
+        'mls-',   // MLS (USA soccer)
+
+        // Soccer - Europe
+        'epl-',   // English Premier League
+        'elc-',   // EFL Championship (England)
+        'lal-',   // La Liga (Spain)
+        'es2-',   // La Liga 2 (Spain)
+        'bun-',   // Bundesliga (Germany)
+        'bl2-',   // Bundesliga 2 (Germany)
+        'sea-',   // Serie A (Italy)
+        'itsb-',  // Italy Serie B
+        'ere-',   // Eredivisie (Netherlands)
+        'por-',   // Portugal
+        'tur-',   // Turkey
+        'rus-',   // Russia
+        'den-',   // Denmark
+        'nor-',   // Norway
+        'scop-',  // Scottish Cup
+
+        // Soccer - Americas
+        'arg-',   // Argentina
+        'bra-',   // Brazil
+        'mex-',   // Mexico
+        'lib-',   // Libertadores
+        'cde-',   // Copa del Rey
+
+        // Soccer - Asia
+        'kor-',   // K-League (Korea)
+        'jap-',   // Japan
+        'ja2-',   // J2 League (Japan)
+
+        // Esports
+        'val-',   // Valorant
         'lol-',   // League of Legends
         'csgo-',  // Counter-Strike
         'cs2-',   // Counter-Strike 2
         'dota-',  // Dota 2
-        'dota2-', // Dota 2 (alternative prefix)
+        'dota2-', // Dota 2 (alternative)
     ];
 
     // Date pattern to identify real matches (YYYY-MM-DD)
