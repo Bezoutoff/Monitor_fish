@@ -203,32 +203,25 @@ export class OrderMonitor {
             // Iterate through both outcomes
             for (const [outcomeKey, orderBook] of Object.entries(update.orderBooks)) {
                 const book = orderBook as any;
+                const tokenId = book.marketId;  // tokenId is in orderBook, not in bid/ask
 
-                // Process bids
-                for (const [price, level] of Object.entries(book.bids || {})) {
-                    const bid = level as any;
-                    const tokenId = bid.tokenId;
-                    const priceNum = parseFloat(price);
-                    const size = parseFloat(bid.size || '0');
+                if (!tokenId) continue;
 
-                    if (size > 0) {
-                        this.orderTracker?.processOrderLevel(tokenId, priceNum, size, 'BUY');
+                // Process bids (array of {price, size})
+                for (const bid of (book.bids || [])) {
+                    if (bid.size > 0) {
+                        this.orderTracker?.processOrderLevel(tokenId, bid.price, bid.size, 'BUY');
                     } else {
-                        this.orderTracker?.removeOrder(tokenId, priceNum, 'BUY');
+                        this.orderTracker?.removeOrder(tokenId, bid.price, 'BUY');
                     }
                 }
 
-                // Process asks
-                for (const [price, level] of Object.entries(book.asks || {})) {
-                    const ask = level as any;
-                    const tokenId = ask.tokenId;
-                    const priceNum = parseFloat(price);
-                    const size = parseFloat(ask.size || '0');
-
-                    if (size > 0) {
-                        this.orderTracker?.processOrderLevel(tokenId, priceNum, size, 'SELL');
+                // Process asks (array of {price, size})
+                for (const ask of (book.asks || [])) {
+                    if (ask.size > 0) {
+                        this.orderTracker?.processOrderLevel(tokenId, ask.price, ask.size, 'SELL');
                     } else {
-                        this.orderTracker?.removeOrder(tokenId, priceNum, 'SELL');
+                        this.orderTracker?.removeOrder(tokenId, ask.price, 'SELL');
                     }
                 }
             }
