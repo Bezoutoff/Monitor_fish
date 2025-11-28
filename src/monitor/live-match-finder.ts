@@ -122,13 +122,19 @@ export class LiveMatchFinder {
                     continue;
                 }
 
-                // Only LIVE matches: started (gameStartTime <= now) AND not finished (acceptingOrders = true)
+                // Only LIVE matches: started recently AND not finished
                 if (market.gameStartTime) {
                     const gameStart = new Date(market.gameStartTime);
                     const now = new Date();
 
                     // Skip matches that haven't started yet
                     if (gameStart > now) {
+                        continue;
+                    }
+
+                    // Skip matches that started more than 6 hours ago (max match duration)
+                    const sixHoursAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000);
+                    if (gameStart < sixHoursAgo) {
                         continue;
                     }
                 }
