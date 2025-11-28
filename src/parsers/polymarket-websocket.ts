@@ -35,7 +35,6 @@ export class PolymarketWebSocketParser {
   private allMarketsTokenIds: string[] = []; // Track "all markets" tokens separately
   private orderBookState: Map<string, OrderBook> = new Map();
   private config: TradingConfig;
-  private cleanupInterval: NodeJS.Timeout | null = null;
 
   constructor(
     onUpdate: (data: PolymarketWebSocketUpdate) => void,
@@ -44,8 +43,8 @@ export class PolymarketWebSocketParser {
     this.onUpdate = onUpdate;
     this.config = config;
 
-    // Start periodic cleanup of stale order book levels (every 30 seconds)
-    this.cleanupInterval = setInterval(() => this.cleanupStaleOrders(), 30000);
+    // Note: Cleanup disabled - inactive markets don't send WebSocket updates
+    // which caused mass deletion of valid orderbook data
   }
 
   /**
@@ -382,12 +381,6 @@ export class PolymarketWebSocketParser {
     if (!this.client) return;
 
     console.log('🔌 Disconnecting from Polymarket WebSocket...');
-
-    // Clear cleanup interval
-    if (this.cleanupInterval) {
-      clearInterval(this.cleanupInterval);
-      this.cleanupInterval = null;
-    }
 
     this.client.disconnect();
     this.client = null;
