@@ -136,6 +136,14 @@ export class AccountTracker {
                 return;
             }
 
+            // First run - just save last tx hash without alerting
+            if (this.lastSeenTxHash === null) {
+                this.lastSeenTxHash = activities[0].transactionHash;
+                this.saveState();
+                console.log(`👤 First run - saved last tx: ${this.lastSeenTxHash.substring(0, 10)}...`);
+                return;
+            }
+
             // Process new activities (stop when we reach last seen)
             const newTrades: TradeActivity[] = [];
 
