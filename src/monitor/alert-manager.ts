@@ -514,8 +514,18 @@ ${polymarketUrl}`;
             // Get sport emoji from event slug
             const sportEmoji = this.getSportEmoji(trade.eventSlug);
 
-            // Get full team name or use outcome as-is
-            const marketName = this.getFullTeamName(trade.outcome);
+            // For Yes/No/Over/Under outcomes, use the title (question) instead
+            let marketName: string;
+            if (['Yes', 'No', 'Over', 'Under'].includes(trade.outcome)) {
+                // Extract meaningful part from title like "Will Wrexham AFC win on 2025-11-29?"
+                const titleClean = trade.title
+                    .replace(/^Will\s+/i, '')
+                    .replace(/\s+on\s+\d{4}-\d{2}-\d{2}\??$/i, '')
+                    .replace(/\?$/, '');
+                marketName = `${titleClean}: ${trade.outcome}`;
+            } else {
+                marketName = this.getFullTeamName(trade.outcome);
+            }
 
             // Get trader name
             const traderName = this.getTraderName(wallet);
