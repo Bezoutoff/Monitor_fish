@@ -52,6 +52,16 @@ export class AccountTracker {
     // API
     private readonly apiUrl = 'https://data-api.polymarket.com/activity';
 
+    // Sports/esports prefixes (only alert for these)
+    private readonly sportsPrefixes = [
+        'nba-', 'nhl-', 'nfl-', 'cbb-', 'cfb-', 'mls-',  // American sports
+        'epl-', 'elc-', 'lal-', 'es2-', 'bun-', 'bl2-',  // Soccer - Europe
+        'sea-', 'itsb-', 'ere-', 'por-', 'tur-', 'rus-', 'den-', 'nor-', 'scop-',
+        'arg-', 'bra-', 'mex-', 'lib-', 'cde-',          // Soccer - Americas
+        'kor-', 'jap-', 'ja2-',                          // Soccer - Asia
+        'val-', 'lol-', 'csgo-', 'cs2-', 'dota-', 'dota2-'  // Esports
+    ];
+
     constructor(wallet: string, alertManager: AlertManager, checkInterval: number = 200) {
         this.wallet = wallet;
         this.alertManager = alertManager;
@@ -178,6 +188,11 @@ export class AccountTracker {
 
             // Process new trades (oldest first for correct order)
             for (const trade of newTrades.reverse()) {
+                // Skip non-sports events
+                if (!this.isSportsEvent(trade.eventSlug)) {
+                    continue;
+                }
+
                 const isDuplicate = this.isDuplicate(trade);
 
                 // Add to recent trades BEFORE alert (so next trade in batch sees it)
@@ -203,6 +218,14 @@ export class AccountTracker {
         } finally {
             this.isChecking = false;
         }
+    }
+
+    /**
+     * Check if trade is for a sports/esports event
+     */
+    private isSportsEvent(slug: string): boolean {
+        const lowerSlug = slug.toLowerCase();
+        return this.sportsPrefixes.some(prefix => lowerSlug.startsWith(prefix));
     }
 
     /**
