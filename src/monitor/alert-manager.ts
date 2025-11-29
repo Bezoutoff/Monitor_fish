@@ -272,6 +272,11 @@ export class AlertManager {
                 ? `$${(dollarValue / 1000).toFixed(1)}k`
                 : `$${dollarValue.toFixed(0)}`;
 
+            // Calculate $ signs based on value (1 sign per $2k, min 1, max 10)
+            // $2k = 1, $4k = 2, ... $20k+ = 10
+            const dollarSigns = Math.min(10, Math.max(1, Math.ceil(dollarValue / 2000)));
+            const dollarSignsStr = '💵'.repeat(dollarSigns);
+
             // Format size
             const sizeStr = alert.size >= 1000
                 ? `${(alert.size / 1000).toFixed(1)}k`
@@ -285,7 +290,7 @@ export class AlertManager {
 
 📊 *${alert.market}*
 💰 \`${sizeStr} shares @ ${(alert.price * 100).toFixed(0)}¢\`
-💵 Value: *${dollarStr}*
+${dollarSignsStr} *${dollarStr}*
 
 ${polymarketUrl}`;
 
