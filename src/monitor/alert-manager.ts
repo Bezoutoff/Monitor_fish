@@ -287,7 +287,7 @@ export class AlertManager {
 💰 \`${sizeStr} shares @ ${(alert.price * 100).toFixed(0)}¢\`
 💵 Value: *${dollarStr}*
 
-${sportEmoji} [${alert.match}](${polymarketUrl})`;
+${polymarketUrl}`;
 
             const url = `https://api.telegram.org/bot${this.telegramToken}/sendMessage`;
             const response = await fetch(url, {
