@@ -42,7 +42,7 @@ export class AccountTracker {
 
     // Tracking state
     private lastSeenTxHash: string | null = null;
-    private recentTrades: TradeActivity[] = [];  // For duplicate filtering
+    private recentTrades: Array<{ trade: TradeActivity; seenAt: number }> = [];  // For duplicate filtering
     private isChecking: boolean = false;
 
     // Logging
@@ -181,7 +181,7 @@ export class AccountTracker {
                 const isDuplicate = this.isDuplicate(trade);
 
                 // Add to recent trades BEFORE alert (so next trade in batch sees it)
-                this.recentTrades.push(trade);
+                this.recentTrades.push({ trade, seenAt: Date.now() });
 
                 // Log all trades
                 this.logTrade(trade, !isDuplicate);
@@ -207,26 +207,26 @@ export class AccountTracker {
 
     /**
      * Check if trade is similar to recent ones
-     * Similar = same outcome + price within 5% + within 5 minutes
+     * Similar = same outcome + price within 5% + seen within 5 minutes
      */
     private isDuplicate(trade: TradeActivity): boolean {
         const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
 
-        const similar = this.recentTrades.find(t =>
-            t.outcome === trade.outcome &&
-            Math.abs(t.price - trade.price) / Math.max(t.price, 0.01) < 0.05 &&
-            t.timestamp > fiveMinutesAgo
+        const similar = this.recentTrades.find(r =>
+            r.trade.outcome === trade.outcome &&
+            Math.abs(r.trade.price - trade.price) / Math.max(r.trade.price, 0.01) < 0.05 &&
+            r.seenAt > fiveMinutesAgo
         );
 
         return !!similar;
     }
 
     /**
-     * Cleanup trades older than 5 minutes
+     * Cleanup trades seen more than 5 minutes ago
      */
     private cleanupRecentTrades(): void {
         const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
-        this.recentTrades = this.recentTrades.filter(t => t.timestamp > fiveMinutesAgo);
+        this.recentTrades = this.recentTrades.filter(r => r.seenAt > fiveMinutesAgo);
     }
 
     /**
