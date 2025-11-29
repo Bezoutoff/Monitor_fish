@@ -141,11 +141,11 @@ export class OrderMonitor {
                 this.wsParser.updateSubscriptions(tokenIds);
             }
 
-            // Group matches by base slug (without spread/total/1h suffixes)
+            // Group matches by base slug (without spread/total/1h/more-markets suffixes)
             const baseMatchMap = new Map<string, number>();
             for (const match of matches) {
-                // Extract base slug: nba-mia-dal-2025-12-03 from nba-mia-dal-2025-12-03-spread-home-5pt5
-                const baseSlug = match.slug.replace(/-(spread|total|1h|2h|moneyline).*$/, '');
+                // Extract base slug: nba-mia-dal-2025-12-03 from nba-mia-dal-2025-12-03-more-markets
+                const baseSlug = match.slug.replace(/-(spread|total|1h|2h|moneyline|more-markets).*$/, '');
                 const currentCount = baseMatchMap.get(baseSlug) || 0;
                 baseMatchMap.set(baseSlug, currentCount + match.markets.length);
             }
