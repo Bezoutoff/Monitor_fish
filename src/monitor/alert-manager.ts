@@ -8,6 +8,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { ClobClient } from '@polymarket/clob-client';
 import { OrderAlert, TradeActivity } from './types';
 
 export class AlertManager {
@@ -423,7 +424,7 @@ export class AlertManager {
             const text = `🐋 *WHALE ALERT* ${sportEmoji}
 
 📊 *${marketName}*
-${sideEmoji} \`${sizeStr} shares @ ${(alert.price * 100).toFixed(0)}¢\`
+${sideEmoji} ${sizeStr} shares @ ${(alert.price * 100).toFixed(0)}¢
 ${dollarSignsStr} *${dollarStr}*
 
 ${polymarketUrl}`;
@@ -506,20 +507,21 @@ ${polymarketUrl}`;
      */
     private async getLiquidityAtPrice(tokenId: string, price: number, side: 'BUY' | 'SELL'): Promise<number | null> {
         try {
-            const url = `https://clob.polymarket.com/book?token_id=${tokenId}`;
-            const response = await fetch(url);
-            if (!response.ok) return null;
-
-            const book = await response.json() as { bids: Array<{ price: string; size: string }>; asks: Array<{ price: string; size: string }> };
+            const clobClient = new ClobClient('https://clob.polymarket.com', 137);
+            const book = await clobClient.getOrderBook(tokenId);
+            if (!book) return null;
 
             // BUY looks at asks (sell orders), SELL looks at bids (buy orders)
             const orders = side === 'BUY' ? book.asks : book.bids;
+            if (!orders || orders.length === 0) return null;
+
             const priceStr = price.toFixed(2);
 
             // Find order at this price
             const order = orders.find((o: { price: string }) => parseFloat(o.price).toFixed(2) === priceStr);
             return order ? parseFloat(order.size) : null;
-        } catch {
+        } catch (error) {
+            console.error('❌ Error fetching orderbook:', error);
             return null;
         }
     }
@@ -585,8 +587,8 @@ ${polymarketUrl}`;
             const text = `🐟 *FISH TRADE* ${sportEmoji} | *${traderName}*
 
 📊 *${marketName}*
-${sideEmoji} \`${trade.side} ${sizeStr} @ ${(trade.price * 100).toFixed(0)}¢ (${odds})\`
-📖 \`${liquidityStr} shares available\`
+${sideEmoji} ${trade.side} ${sizeStr} @ ${(trade.price * 100).toFixed(0)}¢ (${odds})
+📖 ${liquidityStr} shares available
 ${dollarSignsStr} *${dollarStr}*
 
 ${polymarketUrl}`;
