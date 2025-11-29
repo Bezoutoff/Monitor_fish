@@ -280,13 +280,14 @@ export class AlertManager {
             // Get sport emoji
             const sportEmoji = this.getSportEmoji(alert.match);
 
+            const polymarketUrl = `https://polymarket.com/event/${alert.match}`;
             const text = `🐋 *WHALE ALERT* ${sportEmoji}
 
 📊 *${alert.market}*
 💰 \`${sizeStr} shares @ ${(alert.price * 100).toFixed(0)}¢\`
 💵 Value: *${dollarStr}*
 
-${sportEmoji} ${alert.match}`;
+${sportEmoji} [${alert.match}](${polymarketUrl})`;
 
             const url = `https://api.telegram.org/bot${this.telegramToken}/sendMessage`;
             const response = await fetch(url, {
@@ -296,13 +297,7 @@ ${sportEmoji} ${alert.match}`;
                     chat_id: this.telegramChatId,
                     text,
                     parse_mode: 'Markdown',
-                    disable_web_page_preview: true,
-                    reply_markup: {
-                        inline_keyboard: [[
-                            { text: '📈 Open Market', url: `https://polymarket.com/event/${alert.match}` },
-                            { text: '📊 Terminal orderbook', url: `livetrade://polymarket.com/event/${alert.match}` }
-                        ]]
-                    }
+                    disable_web_page_preview: true
                 })
             });
 
