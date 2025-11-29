@@ -120,4 +120,5 @@ export interface TradeActivity {
     outcome: string;
     eventSlug: string;
     pseudonym: string;
+    asset: string;  // Token ID for orderbook lookup
 }

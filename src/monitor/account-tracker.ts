@@ -27,6 +27,7 @@ interface ActivityApiResponse {
     outcome: string;
     slug: string;
     pseudonym: string;
+    asset: string;  // Token ID
 }
 
 interface LoggedTrade extends TradeActivity {
@@ -174,7 +175,8 @@ export class AccountTracker {
                     title: activity.title,
                     outcome: activity.outcome,
                     eventSlug: activity.slug,
-                    pseudonym: activity.pseudonym
+                    pseudonym: activity.pseudonym,
+                    asset: activity.asset
                 };
 
                 newTrades.push(trade);

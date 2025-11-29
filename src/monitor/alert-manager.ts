@@ -492,6 +492,29 @@ ${polymarketUrl}`;
     }
 
     /**
+     * Get liquidity at price from orderbook
+     */
+    private async getLiquidityAtPrice(tokenId: string, price: number, side: 'BUY' | 'SELL'): Promise<number | null> {
+        try {
+            const url = `https://clob.polymarket.com/book?token_id=${tokenId}`;
+            const response = await fetch(url);
+            if (!response.ok) return null;
+
+            const book = await response.json() as { bids: Array<{ price: string; size: string }>; asks: Array<{ price: string; size: string }> };
+
+            // BUY looks at asks (sell orders), SELL looks at bids (buy orders)
+            const orders = side === 'BUY' ? book.asks : book.bids;
+            const priceStr = price.toFixed(2);
+
+            // Find order at this price
+            const order = orders.find((o: { price: string }) => parseFloat(o.price).toFixed(2) === priceStr);
+            return order ? parseFloat(order.size) : null;
+        } catch {
+            return null;
+        }
+    }
+
+    /**
      * Send alert for trader activity (copy trading)
      */
     async sendTraderAlert(trade: TradeActivity, wallet: string): Promise<void> {
@@ -530,11 +553,18 @@ ${polymarketUrl}`;
             // Get trader name
             const traderName = this.getTraderName(wallet);
 
+            // Get liquidity at this price level
+            const liquidity = await this.getLiquidityAtPrice(trade.asset, trade.price, trade.side);
+            const liquidityStr = liquidity !== null
+                ? (liquidity >= 1000 ? `${(liquidity / 1000).toFixed(1)}k` : liquidity.toFixed(0))
+                : '?';
+
             const polymarketUrl = `https://polymarket.com/event/${trade.eventSlug}`;
             const text = `🐟 *FISH TRADE* ${sportEmoji} | *${traderName}*
 
 📊 *${marketName}*
 💰 \`${trade.side} ${sizeStr} @ ${(trade.price * 100).toFixed(0)}¢\`
+📖 \`${liquidityStr} shares available\`
 ${dollarSignsStr} *${dollarStr}*
 
 ${polymarketUrl}`;
