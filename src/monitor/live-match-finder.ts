@@ -152,6 +152,26 @@ export class LiveMatchFinder {
                 }
 
                 // Only LIVE matches: started recently AND not finished
+                // Extract date from slug (e.g., "nba-cle-atl-2025-11-28" -> "2025-11-28")
+                const dateMatch = market.slug.match(/(\d{4}-\d{2}-\d{2})/);
+                if (dateMatch) {
+                    const matchDate = new Date(dateMatch[1] + 'T00:00:00Z');
+                    const now = new Date();
+                    const today = new Date(now.toISOString().split('T')[0] + 'T00:00:00Z');
+
+                    // Skip matches from future dates
+                    if (matchDate > today) {
+                        continue;
+                    }
+
+                    // Skip matches older than 1 day (postponed games, etc.)
+                    const oneDayAgo = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+                    if (matchDate < oneDayAgo) {
+                        continue;
+                    }
+                }
+
+                // Additional check with gameStartTime if available
                 if (market.gameStartTime) {
                     const gameStart = new Date(market.gameStartTime);
                     const now = new Date();
