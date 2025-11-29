@@ -119,6 +119,11 @@ export class LiveMatchFinder {
 
                 // Extract markets from events
                 for (const event of events) {
+                    // Skip finished events
+                    if (event.ended === true) {
+                        continue;
+                    }
+
                     if (event.markets && Array.isArray(event.markets)) {
                         for (const market of event.markets) {
                             // Add event slug to market for matching
