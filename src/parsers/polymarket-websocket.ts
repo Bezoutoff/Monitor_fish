@@ -120,7 +120,7 @@ export class PolymarketWebSocketParser {
       return;
     }
 
-    console.log(`📝 Adding ${newIds.length} new token IDs to subscription: ${newIds.join(', ')}`);
+    console.log(`📝 Adding ${newIds.length} new token IDs to subscription`);
     this.subscribedTokenIds = [...this.subscribedTokenIds, ...newIds];
     console.log(`   Total subscribed tokens: ${this.subscribedTokenIds.length}`);
 
@@ -130,6 +130,51 @@ export class PolymarketWebSocketParser {
       this.subscribeToTokens(this.subscribedTokenIds); // Re-subscribe to ALL tokens
     } else {
       console.log('⏳ WebSocket not connected yet, will subscribe after connection');
+    }
+  }
+
+  /**
+   * Update subscriptions - adds new tokens and removes old ones
+   * Used to remove finished matches from subscription
+   */
+  updateSubscriptions(newTokenIds: string[]): void {
+    if (!newTokenIds || newTokenIds.length === 0) {
+      console.warn('⚠️  No token IDs provided for subscription update');
+      return;
+    }
+
+    const newSet = new Set(newTokenIds);
+    const oldSet = new Set(this.subscribedTokenIds);
+
+    // Find tokens to remove (in old but not in new)
+    const toRemove = this.subscribedTokenIds.filter(id => !newSet.has(id));
+
+    // Find tokens to add (in new but not in old)
+    const toAdd = newTokenIds.filter(id => !oldSet.has(id));
+
+    if (toRemove.length === 0 && toAdd.length === 0) {
+      return; // No changes needed
+    }
+
+    if (toRemove.length > 0) {
+      console.log(`🗑️  Removing ${toRemove.length} finished markets from subscription`);
+      // Clean up orderbook state for removed tokens
+      for (const tokenId of toRemove) {
+        this.orderBookState.delete(tokenId);
+      }
+    }
+
+    if (toAdd.length > 0) {
+      console.log(`📝 Adding ${toAdd.length} new markets to subscription`);
+    }
+
+    // Update subscribed tokens list
+    this.subscribedTokenIds = newTokenIds;
+    console.log(`   Total subscribed tokens: ${this.subscribedTokenIds.length}`);
+
+    // Re-subscribe with updated list
+    if (this.client && this.subscribedTokenIds.length > 0) {
+      this.subscribeToTokens(this.subscribedTokenIds);
     }
   }
 

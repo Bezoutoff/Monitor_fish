@@ -137,8 +137,8 @@ export class OrderMonitor {
             if (!this.wsParser) {
                 await this.connectWebSocket(tokenIds);
             } else {
-                // Update subscriptions
-                await this.wsParser.subscribe(tokenIds);
+                // Update subscriptions (add new, remove finished)
+                this.wsParser.updateSubscriptions(tokenIds);
             }
 
             // Group matches by base slug (without spread/total/1h suffixes)
