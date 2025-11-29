@@ -8,7 +8,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { OrderAlert } from './types';
+import { OrderAlert, TradeActivity } from './types';
 
 export class AlertManager {
     private logDir: string;
@@ -395,9 +395,9 @@ export class AlertManager {
             // Get sport emoji and market name
             const sportEmoji = this.getSportEmoji(alert.match);
 
-            // For Yes/No outcomes, use the question instead
+            // For Yes/No/Over/Under outcomes, use the question instead
             let marketName: string;
-            if (alert.market === 'Yes' || alert.market === 'No') {
+            if (['Yes', 'No', 'Over', 'Under'].includes(alert.market)) {
                 // Extract meaningful part from question like "Will Bristol City FC win on 2025-11-29?"
                 // -> "Bristol City FC win: Yes"
                 const questionClean = alert.question
@@ -476,6 +476,76 @@ ${polymarketUrl}`;
         } catch (error) {
             console.error('❌ Error getting stats:', error);
             return { totalAlerts: 0, todayAlerts: 0 };
+        }
+    }
+
+    // Trader names mapping (wallet -> display name)
+    private readonly traderNames: Record<string, string> = {
+        '0xC3c3b3ef304DdbEA39fa2246e683a71Da5D0eec8': 'COMESHOT',
+    };
+
+    /**
+     * Get trader display name from wallet address
+     */
+    private getTraderName(wallet: string): string {
+        return this.traderNames[wallet] || wallet.substring(0, 8) + '...';
+    }
+
+    /**
+     * Send alert for trader activity (copy trading)
+     */
+    async sendTraderAlert(trade: TradeActivity, wallet: string): Promise<void> {
+        try {
+            // Calculate dollar value
+            const dollarValue = trade.usdcSize;
+            const dollarStr = dollarValue >= 1000
+                ? `$${(dollarValue / 1000).toFixed(1)}k`
+                : `$${dollarValue.toFixed(0)}`;
+
+            // Calculate $ signs based on value (1 sign per $2k, min 1, max 10)
+            const dollarSigns = Math.min(10, Math.max(1, Math.ceil(dollarValue / 2000)));
+            const dollarSignsStr = '💵'.repeat(dollarSigns);
+
+            // Format size
+            const sizeStr = trade.size >= 1000
+                ? `${(trade.size / 1000).toFixed(1)}k`
+                : trade.size.toFixed(0);
+
+            // Get sport emoji from event slug
+            const sportEmoji = this.getSportEmoji(trade.eventSlug);
+
+            // Get full team name or use outcome as-is
+            const marketName = this.getFullTeamName(trade.outcome);
+
+            // Get trader name
+            const traderName = this.getTraderName(wallet);
+
+            const polymarketUrl = `https://polymarket.com/event/${trade.eventSlug}`;
+            const text = `🐟 *FISH TRADE* ${sportEmoji} | *${traderName}*
+
+📊 *${marketName}*
+💰 \`${trade.side} ${sizeStr} @ ${(trade.price * 100).toFixed(0)}¢\`
+${dollarSignsStr} *${dollarStr}*
+
+${polymarketUrl}`;
+
+            const url = `https://api.telegram.org/bot${this.telegramToken}/sendMessage`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: this.telegramChatId,
+                    text,
+                    parse_mode: 'Markdown',
+                    disable_web_page_preview: true
+                })
+            });
+
+            if (!response.ok) {
+                console.error('❌ Telegram error:', await response.text());
+            }
+        } catch (error) {
+            console.error('❌ Failed to send trader alert:', error);
         }
     }
 }

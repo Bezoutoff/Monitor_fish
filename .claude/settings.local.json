@@ -13,7 +13,8 @@
       "Bash(npx ts-node:*)",
       "Bash(npm run build:*)",
       "Bash(npx:*)",
-      "WebFetch(domain:gamma-api.polymarket.com)"
+      "WebFetch(domain:gamma-api.polymarket.com)",
+      "WebFetch(domain:data-api.polymarket.com)"
     ],
     "deny": [],
     "ask": []

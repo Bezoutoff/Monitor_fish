@@ -19,6 +19,7 @@ import { PolymarketWebSocketParser } from '../parsers/polymarket-websocket';
 import { LiveMatchFinder } from './live-match-finder';
 import { OrderTracker } from './order-tracker';
 import { AlertManager } from './alert-manager';
+import { AccountTracker } from './account-tracker';
 import { MonitorConfig } from './types';
 import { TradingConfig } from '../config/trading-config';
 
@@ -30,6 +31,7 @@ export class OrderMonitor {
     private matchFinder: LiveMatchFinder;
     private orderTracker: OrderTracker | null = null;
     private alertManager: AlertManager;
+    private accountTracker: AccountTracker | null = null;
     private wsParser: PolymarketWebSocketParser | null = null;
     private matchCheckInterval: NodeJS.Timeout | null = null;
     private ageCheckInterval: NodeJS.Timeout | null = null;
@@ -79,6 +81,14 @@ export class OrderMonitor {
                 this.tokenMap,
                 (alert) => this.alertManager.handleAlert(alert)
             );
+
+            // Start account tracker if wallet is configured
+            const trackWallet = process.env.TRACK_WALLET;
+            if (trackWallet) {
+                const checkInterval = parseInt(process.env.ACCOUNT_CHECK_INTERVAL || '200');
+                this.accountTracker = new AccountTracker(trackWallet, this.alertManager, checkInterval);
+                this.accountTracker.start();
+            }
 
             // Find initial matches and subscribe
             await this.updateMatches();
@@ -255,6 +265,10 @@ export class OrderMonitor {
 
         if (this.wsParser) {
             this.wsParser.disconnect();
+        }
+
+        if (this.accountTracker) {
+            this.accountTracker.stop();
         }
 
         console.log('✅ Order Monitor stopped.\n');

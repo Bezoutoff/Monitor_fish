@@ -105,3 +105,19 @@ export interface GammaMarket {
     volumeNum: number;
     liquidityNum: number;
 }
+
+/**
+ * Trade activity from account tracker
+ */
+export interface TradeActivity {
+    transactionHash: string;
+    timestamp: number;
+    side: 'BUY' | 'SELL';
+    size: number;
+    usdcSize: number;
+    price: number;
+    title: string;
+    outcome: string;
+    eventSlug: string;
+    pseudonym: string;
+}
