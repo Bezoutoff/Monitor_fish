@@ -503,9 +503,10 @@ ${polymarketUrl}`;
     }
 
     /**
-     * Get liquidity at price from orderbook
+     * Get best available liquidity from orderbook
+     * Returns: { size, price } of best ask (for BUY) or best bid (for SELL)
      */
-    private async getLiquidityAtPrice(tokenId: string, price: number, side: 'BUY' | 'SELL'): Promise<number | null> {
+    private async getBestLiquidity(tokenId: string, side: 'BUY' | 'SELL'): Promise<{ size: number; price: number } | null> {
         try {
             const clobClient = new ClobClient('https://clob.polymarket.com', 137);
             const book = await clobClient.getOrderBook(tokenId);
@@ -515,13 +516,19 @@ ${polymarketUrl}`;
             const orders = side === 'BUY' ? book.asks : book.bids;
             if (!orders || orders.length === 0) return null;
 
-            const priceStr = price.toFixed(2);
+            // Sort to get best price (lowest ask for BUY, highest bid for SELL)
+            const sorted = [...orders].sort((a, b) => {
+                const priceA = parseFloat(a.price);
+                const priceB = parseFloat(b.price);
+                return side === 'BUY' ? priceA - priceB : priceB - priceA;
+            });
 
-            // Find order at this price
-            const order = orders.find((o: { price: string }) => parseFloat(o.price).toFixed(2) === priceStr);
-            return order ? parseFloat(order.size) : null;
+            const best = sorted[0];
+            return {
+                size: parseFloat(best.size),
+                price: parseFloat(best.price)
+            };
         } catch (error) {
-            console.error('❌ Error fetching orderbook:', error);
             return null;
         }
     }
@@ -571,11 +578,16 @@ ${polymarketUrl}`;
             // Get trader name
             const traderName = this.getTraderName(wallet);
 
-            // Get liquidity at this price level
-            const liquidity = await this.getLiquidityAtPrice(trade.asset, trade.price, trade.side);
-            const liquidityStr = liquidity !== null
-                ? (liquidity >= 1000 ? `${(liquidity / 1000).toFixed(1)}k` : liquidity.toFixed(0))
-                : '?';
+            // Get best available liquidity
+            const bestLiquidity = await this.getBestLiquidity(trade.asset, trade.side);
+            let liquidityLine = '';
+            if (bestLiquidity) {
+                const sizeStr2 = bestLiquidity.size >= 1000
+                    ? `${(bestLiquidity.size / 1000).toFixed(1)}k`
+                    : bestLiquidity.size.toFixed(0);
+                const priceStr2 = (bestLiquidity.price * 100).toFixed(0);
+                liquidityLine = `📖 ${sizeStr2} @ ${priceStr2}¢ available`;
+            }
 
             // Calculate odds coefficient: (1/price)*100 = 100/price
             const odds = (1 / trade.price).toFixed(2);
@@ -588,8 +600,7 @@ ${polymarketUrl}`;
 
 📊 *${marketName}*
 ${sideEmoji} ${trade.side} ${sizeStr} @ ${(trade.price * 100).toFixed(0)}¢ (${odds})
-📖 ${liquidityStr} shares available
-${dollarSignsStr} *${dollarStr}*
+${liquidityLine ? liquidityLine + '\n' : ''}${dollarSignsStr} *${dollarStr}*
 
 ${polymarketUrl}`;
 
