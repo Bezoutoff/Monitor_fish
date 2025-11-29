@@ -395,20 +395,25 @@ export class AlertManager {
             // Get sport emoji and market name
             const sportEmoji = this.getSportEmoji(alert.match);
 
-            // For Yes/No/Over/Under outcomes, use the question instead
+            // Always show question for context + outcome with emoji
             let marketName: string;
             const outcomeEmoji = alert.market === 'Yes' ? '✅' : alert.market === 'No' ? '❌' :
                                  alert.market === 'Over' ? '⬆️' : alert.market === 'Under' ? '⬇️' : '';
+
+            // Clean question: "Will X win on 2025-11-29?" -> "X win"
+            // Or "Who will win X vs Y?" -> "Who will win X vs Y"
+            const questionClean = alert.question
+                .replace(/^Will\s+/i, '')
+                .replace(/\s+on\s+\d{4}-\d{2}-\d{2}\??$/i, '')
+                .replace(/\?$/, '');
+
             if (['Yes', 'No', 'Over', 'Under'].includes(alert.market)) {
-                // Extract meaningful part from question like "Will Bristol City FC win on 2025-11-29?"
-                // -> "Bristol City FC win: Yes"
-                const questionClean = alert.question
-                    .replace(/^Will\s+/i, '')
-                    .replace(/\s+on\s+\d{4}-\d{2}-\d{2}\??$/i, '')
-                    .replace(/\?$/, '');
                 marketName = `${questionClean}: ${outcomeEmoji} ${alert.market}`;
             } else {
-                marketName = this.getFullTeamName(alert.market);
+                // For team outcomes, show "Question: Team" format
+                // e.g., "Who will win: Sunderland AFC"
+                const fullTeamName = this.getFullTeamName(alert.market);
+                marketName = `${questionClean}: ${fullTeamName}`;
             }
 
             // Side emoji (WHALE ALERT only tracks BUY orders)
@@ -542,19 +547,23 @@ ${polymarketUrl}`;
             // Get sport emoji from event slug
             const sportEmoji = this.getSportEmoji(trade.eventSlug);
 
-            // For Yes/No/Over/Under outcomes, use the title (question) instead
+            // Always show title for context + outcome with emoji
             let marketName: string;
             const outcomeEmoji = trade.outcome === 'Yes' ? '✅' : trade.outcome === 'No' ? '❌' :
                                  trade.outcome === 'Over' ? '⬆️' : trade.outcome === 'Under' ? '⬇️' : '';
+
+            // Clean title: "Will X win on 2025-11-29?" -> "X win"
+            const titleClean = trade.title
+                .replace(/^Will\s+/i, '')
+                .replace(/\s+on\s+\d{4}-\d{2}-\d{2}\??$/i, '')
+                .replace(/\?$/, '');
+
             if (['Yes', 'No', 'Over', 'Under'].includes(trade.outcome)) {
-                // Extract meaningful part from title like "Will Wrexham AFC win on 2025-11-29?"
-                const titleClean = trade.title
-                    .replace(/^Will\s+/i, '')
-                    .replace(/\s+on\s+\d{4}-\d{2}-\d{2}\??$/i, '')
-                    .replace(/\?$/, '');
                 marketName = `${titleClean}: ${outcomeEmoji} ${trade.outcome}`;
             } else {
-                marketName = this.getFullTeamName(trade.outcome);
+                // For team outcomes, show "Question: Team" format
+                const fullTeamName = this.getFullTeamName(trade.outcome);
+                marketName = `${titleClean}: ${fullTeamName}`;
             }
 
             // Get trader name
