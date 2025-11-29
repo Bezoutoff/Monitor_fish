@@ -397,6 +397,8 @@ export class AlertManager {
 
             // For Yes/No/Over/Under outcomes, use the question instead
             let marketName: string;
+            const outcomeEmoji = alert.market === 'Yes' ? '✅' : alert.market === 'No' ? '❌' :
+                                 alert.market === 'Over' ? '⬆️' : alert.market === 'Under' ? '⬇️' : '';
             if (['Yes', 'No', 'Over', 'Under'].includes(alert.market)) {
                 // Extract meaningful part from question like "Will Bristol City FC win on 2025-11-29?"
                 // -> "Bristol City FC win: Yes"
@@ -404,16 +406,19 @@ export class AlertManager {
                     .replace(/^Will\s+/i, '')
                     .replace(/\s+on\s+\d{4}-\d{2}-\d{2}\??$/i, '')
                     .replace(/\?$/, '');
-                marketName = `${questionClean}: ${alert.market}`;
+                marketName = `${questionClean}: ${outcomeEmoji} ${alert.market}`;
             } else {
                 marketName = this.getFullTeamName(alert.market);
             }
+
+            // Side emoji (WHALE ALERT only tracks BUY orders)
+            const sideEmoji = '🟢';
 
             const polymarketUrl = `https://polymarket.com/event/${alert.match}`;
             const text = `🐋 *WHALE ALERT* ${sportEmoji}
 
 📊 *${marketName}*
-💰 \`${sizeStr} shares @ ${(alert.price * 100).toFixed(0)}¢\`
+${sideEmoji} \`${sizeStr} shares @ ${(alert.price * 100).toFixed(0)}¢\`
 ${dollarSignsStr} *${dollarStr}*
 
 ${polymarketUrl}`;
@@ -539,13 +544,15 @@ ${polymarketUrl}`;
 
             // For Yes/No/Over/Under outcomes, use the title (question) instead
             let marketName: string;
+            const outcomeEmoji = trade.outcome === 'Yes' ? '✅' : trade.outcome === 'No' ? '❌' :
+                                 trade.outcome === 'Over' ? '⬆️' : trade.outcome === 'Under' ? '⬇️' : '';
             if (['Yes', 'No', 'Over', 'Under'].includes(trade.outcome)) {
                 // Extract meaningful part from title like "Will Wrexham AFC win on 2025-11-29?"
                 const titleClean = trade.title
                     .replace(/^Will\s+/i, '')
                     .replace(/\s+on\s+\d{4}-\d{2}-\d{2}\??$/i, '')
                     .replace(/\?$/, '');
-                marketName = `${titleClean}: ${trade.outcome}`;
+                marketName = `${titleClean}: ${outcomeEmoji} ${trade.outcome}`;
             } else {
                 marketName = this.getFullTeamName(trade.outcome);
             }
@@ -562,11 +569,14 @@ ${polymarketUrl}`;
             // Calculate odds coefficient: (1/price)*100 = 100/price
             const odds = (1 / trade.price).toFixed(2);
 
+            // Side emoji
+            const sideEmoji = trade.side === 'BUY' ? '🟢' : '🔴';
+
             const polymarketUrl = `https://polymarket.com/event/${trade.eventSlug}`;
             const text = `🐟 *FISH TRADE* ${sportEmoji} | *${traderName}*
 
 📊 *${marketName}*
-💰 \`${trade.side} ${sizeStr} @ ${(trade.price * 100).toFixed(0)}¢ (${odds})\`
+${sideEmoji} \`${trade.side} ${sizeStr} @ ${(trade.price * 100).toFixed(0)}¢ (${odds})\`
 📖 \`${liquidityStr} shares available\`
 ${dollarSignsStr} *${dollarStr}*
 
