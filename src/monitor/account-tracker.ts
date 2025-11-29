@@ -180,15 +180,15 @@ export class AccountTracker {
             for (const trade of newTrades.reverse()) {
                 const isDuplicate = this.isDuplicate(trade);
 
+                // Add to recent trades BEFORE alert (so next trade in batch sees it)
+                this.recentTrades.push(trade);
+
                 // Log all trades
                 this.logTrade(trade, !isDuplicate);
 
                 // Alert only non-duplicates
                 if (!isDuplicate) {
                     await this.alertManager.sendTraderAlert(trade, this.wallet);
-
-                    // Add to recent trades for future duplicate checking
-                    this.recentTrades.push(trade);
                 }
             }
 
