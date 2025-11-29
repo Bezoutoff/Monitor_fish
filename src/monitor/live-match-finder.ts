@@ -95,22 +95,43 @@ export class LiveMatchFinder {
 
     /**
      * Find all live sports/esports matches
-     * Uses /markets API without sorting (gameStartTime sort misses some markets)
+     * Uses /events API with tag_slug=games and pagination
      */
     async findLiveMatches(): Promise<LiveMatch[]> {
         try {
             console.log('🔍 Searching for live matches (NBA, NHL, NFL, Valorant, CS2...)');
 
-            // Fetch all active markets (no gameStartTime sort - it misses NBA/NHL)
-            const url = `${this.marketsApiUrl}?active=true&closed=false&limit=1000`;
-            const response = await fetch(url);
+            // Fetch sports events with pagination (NBA/NHL are often in later pages)
+            const allMarkets: GammaMarketResponse[] = [];
+            const eventsUrl = 'https://gamma-api.polymarket.com/events';
 
-            if (!response.ok) {
-                throw new Error(`Gamma API error: ${response.status} ${response.statusText}`);
+            // Fetch multiple pages to get all sports events
+            for (const offset of [0, 500, 1000]) {
+                const url = `${eventsUrl}?tag_slug=games&active=true&closed=false&limit=500&offset=${offset}`;
+                const response = await fetch(url);
+
+                if (!response.ok) {
+                    console.error(`   ⚠️ API error at offset ${offset}: ${response.status}`);
+                    continue;
+                }
+
+                const events = await response.json() as any[];
+
+                // Extract markets from events
+                for (const event of events) {
+                    if (event.markets && Array.isArray(event.markets)) {
+                        for (const market of event.markets) {
+                            // Add event slug to market for matching
+                            market.slug = event.slug;
+                            market.gameStartTime = event.startTime;
+                            allMarkets.push(market);
+                        }
+                    }
+                }
             }
 
-            const markets = await response.json() as GammaMarketResponse[];
-            console.log(`   Found ${markets.length} active markets`);
+            const markets = allMarkets;
+            console.log(`   Found ${markets.length} sports markets`);
 
             // Filter and group markets by slug
             const matchMap = new Map<string, LiveMatch>();
