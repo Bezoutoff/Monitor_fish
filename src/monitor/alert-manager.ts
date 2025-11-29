@@ -503,31 +503,19 @@ ${polymarketUrl}`;
     }
 
     /**
-     * Get best available liquidity from orderbook
-     * Returns: { size, price } of best ask (for BUY) or best bid (for SELL)
+     * Get liquidity at specific price from bids
      */
-    private async getBestLiquidity(tokenId: string, side: 'BUY' | 'SELL'): Promise<{ size: number; price: number } | null> {
+    private async getLiquidityAtPrice(tokenId: string, price: number): Promise<number | null> {
         try {
             const clobClient = new ClobClient('https://clob.polymarket.com', 137);
             const book = await clobClient.getOrderBook(tokenId);
-            if (!book) return null;
+            if (!book || !book.bids) return null;
 
-            // BUY looks at asks (sell orders), SELL looks at bids (buy orders)
-            const orders = side === 'BUY' ? book.asks : book.bids;
-            if (!orders || orders.length === 0) return null;
+            const priceStr = price.toFixed(2);
 
-            // Sort to get best price (lowest ask for BUY, highest bid for SELL)
-            const sorted = [...orders].sort((a, b) => {
-                const priceA = parseFloat(a.price);
-                const priceB = parseFloat(b.price);
-                return side === 'BUY' ? priceA - priceB : priceB - priceA;
-            });
-
-            const best = sorted[0];
-            return {
-                size: parseFloat(best.size),
-                price: parseFloat(best.price)
-            };
+            // Find bid at this price
+            const bid = book.bids.find((b: { price: string }) => parseFloat(b.price).toFixed(2) === priceStr);
+            return bid ? parseFloat(bid.size) : null;
         } catch (error) {
             return null;
         }
@@ -578,15 +566,14 @@ ${polymarketUrl}`;
             // Get trader name
             const traderName = this.getTraderName(wallet);
 
-            // Get best available liquidity
-            const bestLiquidity = await this.getBestLiquidity(trade.asset, trade.side);
+            // Get liquidity at trade price from bids
+            const liquidity = await this.getLiquidityAtPrice(trade.asset, trade.price);
             let liquidityLine = '';
-            if (bestLiquidity) {
-                const sizeStr2 = bestLiquidity.size >= 1000
-                    ? `${(bestLiquidity.size / 1000).toFixed(1)}k`
-                    : bestLiquidity.size.toFixed(0);
-                const priceStr2 = (bestLiquidity.price * 100).toFixed(0);
-                liquidityLine = `📖 ${sizeStr2} @ ${priceStr2}¢ available`;
+            if (liquidity !== null) {
+                const liqStr = liquidity >= 1000
+                    ? `${(liquidity / 1000).toFixed(1)}k`
+                    : liquidity.toFixed(0);
+                liquidityLine = `📖 ${liqStr} shares in orderbook`;
             }
 
             // Calculate odds coefficient: (1/price)*100 = 100/price
