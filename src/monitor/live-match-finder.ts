@@ -104,6 +104,7 @@ export class LiveMatchFinder {
             // Fetch sports events with pagination (NBA/NHL are often in later pages)
             const allMarkets: GammaMarketResponse[] = [];
             const eventsUrl = 'https://gamma-api.polymarket.com/events';
+            const endedBaseSlugs = new Set<string>(); // Track ended matches to skip their -more-markets versions
 
             // Fetch multiple pages to get all sports events
             for (const offset of [0, 500, 1000]) {
@@ -122,6 +123,16 @@ export class LiveMatchFinder {
                 for (const event of events) {
                     // Skip finished events
                     if (event.ended === true) {
+                        skippedEnded++;
+                        // Track base slug to skip -more-markets versions later
+                        const baseSlug = event.slug.replace(/-more-markets$/, '');
+                        endedBaseSlugs.add(baseSlug);
+                        continue;
+                    }
+
+                    // Skip -more-markets versions of ended matches
+                    const baseSlug = event.slug.replace(/-more-markets$/, '');
+                    if (endedBaseSlugs.has(baseSlug)) {
                         skippedEnded++;
                         continue;
                     }
