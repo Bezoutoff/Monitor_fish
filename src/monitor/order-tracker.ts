@@ -26,12 +26,12 @@ interface PriceLevel {
 export class OrderTracker {
     private priceLevels: Map<string, PriceLevel> = new Map();
     private config: MonitorConfig;
-    private tokenMap: Map<string, { slug: string; outcome: string }>;
+    private tokenMap: Map<string, { slug: string; outcome: string; question: string }>;
     private onAlert: (alert: OrderAlert) => void;
 
     constructor(
         config: MonitorConfig,
-        tokenMap: Map<string, { slug: string; outcome: string }>,
+        tokenMap: Map<string, { slug: string; outcome: string; question: string }>,
         onAlert: (alert: OrderAlert) => void
     ) {
         this.config = config;
@@ -158,6 +158,7 @@ export class OrderTracker {
                     timestamp: now.toISOString(),
                     match: matchInfo.slug,
                     market: matchInfo.outcome,
+                    question: matchInfo.question,
                     tokenId: level.tokenId,
                     orderId: levelId,
                     price: level.price,
@@ -200,7 +201,7 @@ export class OrderTracker {
     /**
      * Update token map when new matches are found
      */
-    updateTokenMap(tokenMap: Map<string, { slug: string; outcome: string }>): void {
+    updateTokenMap(tokenMap: Map<string, { slug: string; outcome: string; question: string }>): void {
         this.tokenMap = tokenMap;
     }
 

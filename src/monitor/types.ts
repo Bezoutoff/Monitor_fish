@@ -20,7 +20,8 @@ export interface LiveMatch {
 
 export interface MarketInfo {
     tokenId: string;              // CLOB token ID
-    outcome: string;              // e.g., "Houston Rockets"
+    outcome: string;              // e.g., "Houston Rockets" or "Yes"/"No"
+    question: string;             // e.g., "Will Bristol City FC win?"
     conditionId: string;          // Market condition ID
 }
 
@@ -40,7 +41,8 @@ export interface TrackedOrder {
 export interface OrderAlert {
     timestamp: string;            // ISO timestamp
     match: string;                // Match slug
-    market: string;               // Market outcome
+    market: string;               // Market outcome (e.g., "Lakers" or "Yes")
+    question: string;             // Market question (e.g., "Will Bristol City win?")
     tokenId: string;              // Token ID
     orderId: string;              // Order ID
     price: number;                // Order price

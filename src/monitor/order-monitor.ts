@@ -33,7 +33,7 @@ export class OrderMonitor {
     private wsParser: PolymarketWebSocketParser | null = null;
     private matchCheckInterval: NodeJS.Timeout | null = null;
     private ageCheckInterval: NodeJS.Timeout | null = null;
-    private tokenMap: Map<string, { slug: string; outcome: string }> = new Map();
+    private tokenMap: Map<string, { slug: string; outcome: string; question: string }> = new Map();
 
     constructor() {
         // Load configuration from environment

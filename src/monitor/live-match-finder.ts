@@ -224,6 +224,7 @@ export class LiveMatchFinder {
                             match.markets.push({
                                 tokenId: tokenIds[i],
                                 outcome: outcomes[i] || `Outcome ${i + 1}`,
+                                question: market.question || '',
                                 conditionId: market.conditionId
                             });
                         }
@@ -278,14 +279,15 @@ export class LiveMatchFinder {
     /**
      * Create a lookup map: tokenId -> match info
      */
-    createTokenMap(matches: LiveMatch[]): Map<string, { slug: string; outcome: string }> {
-        const tokenMap = new Map<string, { slug: string; outcome: string }>();
+    createTokenMap(matches: LiveMatch[]): Map<string, { slug: string; outcome: string; question: string }> {
+        const tokenMap = new Map<string, { slug: string; outcome: string; question: string }>();
 
         for (const match of matches) {
             for (const market of match.markets) {
                 tokenMap.set(market.tokenId, {
                     slug: match.slug,
-                    outcome: market.outcome
+                    outcome: market.outcome,
+                    question: market.question
                 });
             }
         }

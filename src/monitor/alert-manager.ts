@@ -392,14 +392,27 @@ export class AlertManager {
                 ? `${(alert.size / 1000).toFixed(1)}k`
                 : alert.size.toFixed(0);
 
-            // Get sport emoji and full team name
+            // Get sport emoji and market name
             const sportEmoji = this.getSportEmoji(alert.match);
-            const fullTeamName = this.getFullTeamName(alert.market);
+
+            // For Yes/No outcomes, use the question instead
+            let marketName: string;
+            if (alert.market === 'Yes' || alert.market === 'No') {
+                // Extract meaningful part from question like "Will Bristol City FC win on 2025-11-29?"
+                // -> "Bristol City FC win: Yes"
+                const questionClean = alert.question
+                    .replace(/^Will\s+/i, '')
+                    .replace(/\s+on\s+\d{4}-\d{2}-\d{2}\??$/i, '')
+                    .replace(/\?$/, '');
+                marketName = `${questionClean}: ${alert.market}`;
+            } else {
+                marketName = this.getFullTeamName(alert.market);
+            }
 
             const polymarketUrl = `https://polymarket.com/event/${alert.match}`;
             const text = `🐋 *WHALE ALERT* ${sportEmoji}
 
-📊 *${fullTeamName}*
+📊 *${marketName}*
 💰 \`${sizeStr} shares @ ${(alert.price * 100).toFixed(0)}¢\`
 ${dollarSignsStr} *${dollarStr}*
 
