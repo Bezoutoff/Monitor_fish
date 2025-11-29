@@ -131,7 +131,15 @@ export class LiveMatchFinder {
             }
 
             const markets = allMarkets;
-            console.log(`   Found ${markets.length} sports markets`);
+            console.log(`   Found ${markets.length} sports markets from ${[0, 500, 1000].length} API pages`);
+
+            // Debug: count by sport
+            const sportCounts: Record<string, number> = {};
+            for (const m of markets) {
+                const prefix = m.slug?.split('-')[0] || 'unknown';
+                sportCounts[prefix] = (sportCounts[prefix] || 0) + 1;
+            }
+            console.log(`   By sport: ${Object.entries(sportCounts).map(([k,v]) => `${k}:${v}`).join(', ')}`);
 
             // Filter and group markets by slug
             const matchMap = new Map<string, LiveMatch>();

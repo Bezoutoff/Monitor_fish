@@ -9,7 +9,10 @@
       "Bash(git commit:*)",
       "Bash(git remote add:*)",
       "Bash(git branch:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(npx ts-node:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx:*)"
     ],
     "deny": [],
     "ask": []
