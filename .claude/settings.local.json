@@ -12,7 +12,8 @@
       "Bash(git push:*)",
       "Bash(npx ts-node:*)",
       "Bash(npm run build:*)",
-      "Bash(npx:*)"
+      "Bash(npx:*)",
+      "WebFetch(domain:gamma-api.polymarket.com)"
     ],
     "deny": [],
     "ask": []

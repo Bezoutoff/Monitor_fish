@@ -27,6 +27,109 @@ export class AlertManager {
     private writeQueue: OrderAlert[] = [];
     private isWriting: boolean = false;
 
+    // Full team names mapping
+    private readonly teamNames: Record<string, string> = {
+        // NBA (30 teams)
+        'Hawks': 'Atlanta Hawks',
+        'Celtics': 'Boston Celtics',
+        'Nets': 'Brooklyn Nets',
+        'Hornets': 'Charlotte Hornets',
+        'Bulls': 'Chicago Bulls',
+        'Cavaliers': 'Cleveland Cavaliers',
+        'Mavericks': 'Dallas Mavericks',
+        'Nuggets': 'Denver Nuggets',
+        'Pistons': 'Detroit Pistons',
+        'Warriors': 'Golden State Warriors',
+        'Rockets': 'Houston Rockets',
+        'Pacers': 'Indiana Pacers',
+        'Clippers': 'LA Clippers',
+        'Lakers': 'Los Angeles Lakers',
+        'Grizzlies': 'Memphis Grizzlies',
+        'Heat': 'Miami Heat',
+        'Bucks': 'Milwaukee Bucks',
+        'Timberwolves': 'Minnesota Timberwolves',
+        'Pelicans': 'New Orleans Pelicans',
+        'Knicks': 'New York Knicks',
+        'Thunder': 'Oklahoma City Thunder',
+        'Magic': 'Orlando Magic',
+        '76ers': 'Philadelphia 76ers',
+        'Suns': 'Phoenix Suns',
+        'Trail Blazers': 'Portland Trail Blazers',
+        'Kings': 'Sacramento Kings',
+        'Spurs': 'San Antonio Spurs',
+        'Raptors': 'Toronto Raptors',
+        'Jazz': 'Utah Jazz',
+        'Wizards': 'Washington Wizards',
+
+        // NHL (32 teams)
+        'Ducks': 'Anaheim Ducks',
+        'Coyotes': 'Arizona Coyotes',
+        'Bruins': 'Boston Bruins',
+        'Sabres': 'Buffalo Sabres',
+        'Flames': 'Calgary Flames',
+        'Hurricanes': 'Carolina Hurricanes',
+        'Blackhawks': 'Chicago Blackhawks',
+        'Avalanche': 'Colorado Avalanche',
+        'Blue Jackets': 'Columbus Blue Jackets',
+        'Stars': 'Dallas Stars',
+        'Red Wings': 'Detroit Red Wings',
+        'Oilers': 'Edmonton Oilers',
+        'Panthers': 'Florida Panthers',
+        'Kings (NHL)': 'Los Angeles Kings',
+        'Wild': 'Minnesota Wild',
+        'Canadiens': 'Montreal Canadiens',
+        'Predators': 'Nashville Predators',
+        'Devils': 'New Jersey Devils',
+        'Islanders': 'New York Islanders',
+        'Rangers': 'New York Rangers',
+        'Senators': 'Ottawa Senators',
+        'Flyers': 'Philadelphia Flyers',
+        'Penguins': 'Pittsburgh Penguins',
+        'Sharks': 'San Jose Sharks',
+        'Kraken': 'Seattle Kraken',
+        'Blues': 'St. Louis Blues',
+        'Lightning': 'Tampa Bay Lightning',
+        'Maple Leafs': 'Toronto Maple Leafs',
+        'Canucks': 'Vancouver Canucks',
+        'Golden Knights': 'Vegas Golden Knights',
+        'Capitals': 'Washington Capitals',
+        'Jets': 'Winnipeg Jets',
+
+        // NFL (32 teams)
+        'Cardinals': 'Arizona Cardinals',
+        'Falcons': 'Atlanta Falcons',
+        'Ravens': 'Baltimore Ravens',
+        'Bills': 'Buffalo Bills',
+        'Panthers (NFL)': 'Carolina Panthers',
+        'Bears': 'Chicago Bears',
+        'Bengals': 'Cincinnati Bengals',
+        'Browns': 'Cleveland Browns',
+        'Cowboys': 'Dallas Cowboys',
+        'Broncos': 'Denver Broncos',
+        'Lions': 'Detroit Lions',
+        'Packers': 'Green Bay Packers',
+        'Texans': 'Houston Texans',
+        'Colts': 'Indianapolis Colts',
+        'Jaguars': 'Jacksonville Jaguars',
+        'Chiefs': 'Kansas City Chiefs',
+        'Raiders': 'Las Vegas Raiders',
+        'Chargers': 'Los Angeles Chargers',
+        'Rams': 'Los Angeles Rams',
+        'Dolphins': 'Miami Dolphins',
+        'Vikings': 'Minnesota Vikings',
+        'Patriots': 'New England Patriots',
+        'Saints': 'New Orleans Saints',
+        'Giants': 'New York Giants',
+        'Jets (NFL)': 'New York Jets',
+        'Eagles': 'Philadelphia Eagles',
+        'Steelers': 'Pittsburgh Steelers',
+        '49ers': 'San Francisco 49ers',
+        'Seahawks': 'Seattle Seahawks',
+        'Buccaneers': 'Tampa Bay Buccaneers',
+        'Titans': 'Tennessee Titans',
+        'Commanders': 'Washington Commanders',
+    };
+
     constructor(logDir: string = 'order-monitor-logs') {
         this.logDir = logDir;
         this.sentAlertsFile = path.join(logDir, 'sent-alerts.json');
@@ -237,6 +340,13 @@ export class AlertManager {
     }
 
     /**
+     * Get full team name from short name
+     */
+    private getFullTeamName(shortName: string): string {
+        return this.teamNames[shortName] || shortName;
+    }
+
+    /**
      * Get sport emoji based on match slug
      */
     private getSportEmoji(matchSlug: string): string {
@@ -282,13 +392,14 @@ export class AlertManager {
                 ? `${(alert.size / 1000).toFixed(1)}k`
                 : alert.size.toFixed(0);
 
-            // Get sport emoji
+            // Get sport emoji and full team name
             const sportEmoji = this.getSportEmoji(alert.match);
+            const fullTeamName = this.getFullTeamName(alert.market);
 
             const polymarketUrl = `https://polymarket.com/event/${alert.match}`;
             const text = `🐋 *WHALE ALERT* ${sportEmoji}
 
-📊 *${alert.market}*
+📊 *${fullTeamName}*
 💰 \`${sizeStr} shares @ ${(alert.price * 100).toFixed(0)}¢\`
 ${dollarSignsStr} *${dollarStr}*
 
