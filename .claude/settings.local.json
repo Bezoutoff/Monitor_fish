@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -X POST \"https://api.telegram.org/bot7622763223:AAEccNTlepJ1YmfMCT5IC1DNEaNAL8bhu-8/sendMessage\" )",
+      "Bash(curl:*)",
+      "Bash(node -e:*)",
+      "Bash(npx tsc:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git remote add:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

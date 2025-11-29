@@ -95,14 +95,14 @@ export class LiveMatchFinder {
 
     /**
      * Find all live sports/esports matches
-     * Uses /markets API with gameStartTime sorting - only sports have this field
+     * Uses /markets API without sorting (gameStartTime sort misses some markets)
      */
     async findLiveMatches(): Promise<LiveMatch[]> {
         try {
             console.log('🔍 Searching for live matches (NBA, NHL, NFL, Valorant, CS2...)');
 
-            // Fetch markets sorted by gameStartTime (only sports markets have this)
-            const url = `${this.marketsApiUrl}?active=true&closed=false&limit=500&order=gameStartTime&ascending=true`;
+            // Fetch all active markets (no gameStartTime sort - it misses NBA/NHL)
+            const url = `${this.marketsApiUrl}?active=true&closed=false&limit=1000`;
             const response = await fetch(url);
 
             if (!response.ok) {
@@ -110,7 +110,7 @@ export class LiveMatchFinder {
             }
 
             const markets = await response.json() as GammaMarketResponse[];
-            console.log(`   Found ${markets.length} markets with gameStartTime`);
+            console.log(`   Found ${markets.length} active markets`);
 
             // Filter and group markets by slug
             const matchMap = new Map<string, LiveMatch>();
