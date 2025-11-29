@@ -559,11 +559,14 @@ ${polymarketUrl}`;
                 ? (liquidity >= 1000 ? `${(liquidity / 1000).toFixed(1)}k` : liquidity.toFixed(0))
                 : '?';
 
+            // Calculate odds coefficient: (1/price)*100 = 100/price
+            const odds = (1 / trade.price).toFixed(2);
+
             const polymarketUrl = `https://polymarket.com/event/${trade.eventSlug}`;
             const text = `🐟 *FISH TRADE* ${sportEmoji} | *${traderName}*
 
 📊 *${marketName}*
-💰 \`${trade.side} ${sizeStr} @ ${(trade.price * 100).toFixed(0)}¢\`
+💰 \`${trade.side} ${sizeStr} @ ${(trade.price * 100).toFixed(0)}¢ (${odds})\`
 📖 \`${liquidityStr} shares available\`
 ${dollarSignsStr} *${dollarStr}*
 
