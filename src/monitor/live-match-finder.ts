@@ -116,11 +116,13 @@ export class LiveMatchFinder {
                 }
 
                 const events = await response.json() as any[];
+                let skippedEnded = 0;
 
                 // Extract markets from events
                 for (const event of events) {
                     // Skip finished events
                     if (event.ended === true) {
+                        skippedEnded++;
                         continue;
                     }
 
@@ -132,6 +134,10 @@ export class LiveMatchFinder {
                             allMarkets.push(market);
                         }
                     }
+                }
+
+                if (skippedEnded > 0) {
+                    console.log(`   Skipped ${skippedEnded} finished events at offset ${offset}`);
                 }
             }
 
