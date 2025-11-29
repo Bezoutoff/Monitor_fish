@@ -268,6 +268,14 @@ export class AccountTracker {
                 }
             }
 
+            // Cleanup old logs (older than 2 days)
+            const twoDaysAgo = Date.now() - 2 * 24 * 60 * 60 * 1000;
+            const oldCount = logs.length;
+            logs = logs.filter(l => new Date(l.loggedAt).getTime() > twoDaysAgo);
+            if (logs.length < oldCount) {
+                console.log(`🧹 Cleaned ${oldCount - logs.length} old trades from log`);
+            }
+
             // Add new trade
             const logEntry: LoggedTrade = {
                 ...trade,
