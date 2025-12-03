@@ -160,8 +160,10 @@ export class AlertManager {
         // JSON logging
         await this.logToFile(alert);
 
-        // Telegram notification
-        await this.sendTelegram(alert);
+        // Telegram notification (fire-and-forget - не блокирует следующие алерты)
+        this.sendTelegram(alert).catch(err => {
+            console.error('❌ Telegram send failed:', err);
+        });
     }
 
     /**
